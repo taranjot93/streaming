@@ -1,0 +1,16 @@
+com\taranjot\Streaming\config\JsonPOJOSerializer.class
+com\taranjot\Streaming\config\JsonPOJODeserializer.class
+com\taranjot\Streaming\beans\kafkaMessage\EnrichedAttributes.class
+com\taranjot\Streaming\beans\Player.class
+com\taranjot\Streaming\kafkaConsumer\Event.class
+com\taranjot\Streaming\beans\kafkaMessage\HeaderMessage.class
+com\taranjot\Streaming\kafkaConsumer\EventStatisticsInfinite.class
+com\taranjot\Streaming\beans\Match$MatchBuilder.class
+com\taranjot\Streaming\kafkaConsumer\EventConsumer.class
+com\taranjot\Streaming\beans\Player$PlayerBuilder.class
+com\taranjot\Streaming\beans\kafkaMessage\MatchJsonMessage.class
+com\taranjot\Streaming\beans\Match.class
+com\taranjot\Streaming\App.class
+com\taranjot\Streaming\config\AppConstants.class
+com\taranjot\Streaming\beans\kafkaMessage\TypeAttributeMessageJson.class
+com\taranjot\Streaming\beans\kafkaMessage\CustomAttributesJsonMessage.class
