@@ -2,7 +2,7 @@ package com.taranjot.Streaming.config;
 
 /**
  * Class to handle all the constants values
- * 
+ *
  * @author sintara
  *
  */
@@ -20,6 +20,6 @@ public class AppConstants {
 
   public static final String ZOOKEEPER_SERVER_ADDRESS = "192.168.99.100:2181";
 
-  public static final String KAFKA_TOPIC_NAME = "sampleData2";
+  public static final String KAFKA_TOPIC_NAME = "sampleData";
 
 }

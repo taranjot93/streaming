@@ -31,25 +31,15 @@ public class EventStatisticsInfinite implements EventConsumer {
   @Override
   public synchronized void accumulate(final Event event) {
 
-    try {
-      // map json data of header attribute in message received to pojo
-      header = new ObjectMapper().treeToValue(event.getHeader(), HeaderMessage.class);
-
-      // map json data of customAttributes attribute in message received to pojo
-      customAttributesJsonMessage =
-        new ObjectMapper().treeToValue(event.getCustomAttributes(), CustomAttributesJsonMessage.class);
-      matchJsonMessage = new ObjectMapper().treeToValue(event.getMatch(), MatchJsonMessage.class);
-
-      // map json data of typeAttributes attribute in message received to pojo
-      typeAttributeMessageJson =
-        new ObjectMapper().treeToValue(event.getTypeAttributes(), TypeAttributeMessageJson.class);
-
-    }
-    catch (final JsonProcessingException e) {
-      e.printStackTrace();
-    }
+    // parse data as java objects
+    parseJSON(event);
 
     final Player player;
+
+    // finds matchId from the kafka message, assumed that context_name is match_id
+    // in kafka message, which is there in Match JsonNode for some events and in
+    // typeAttribute JsonNode for some other events. Match id if needed to keep
+    // track of rounds win in order to finds win/loss ratio.
 
     if (Objects.isNull(matchJsonMessage)) {
       matchId = typeAttributeMessageJson.getMatchId();
@@ -58,6 +48,8 @@ public class EventStatisticsInfinite implements EventConsumer {
       matchId = matchJsonMessage.getMatchId();
     }
 
+    // find player object in the map using profile id received from kafka message.
+    // create and add a new player if it doesnt exist in map.
     if (map.containsKey(header.getProfileId())) {
       player = map.get(header.getProfileId());
     }
@@ -69,10 +61,15 @@ public class EventStatisticsInfinite implements EventConsumer {
         .build();
       map.put(header.getProfileId(), player);
     }
-    // every time when an event is recieved value of last seen is updated
+
+    // update value of last seen time of player with server date received from kafka
+    // message, so that last event received would be the last seen of the player.
     player.setLastSeen(header.getServerDate());
 
-    // if match event increment players matches
+    // add a new entry of match for player using match id as key in the map and
+    // updates total number of matches played by player as well. It is assumed that
+    // everytime player starts a match ,an event with event type context.start.Match
+    // is received.
     if (header.getEventType()
       .equals(AppConstants.EVENT_TYPE_NEW_MATCH)) {
       final HashMap<String, Match> playerMatches = Optional.ofNullable(player.getMatches())
@@ -83,14 +80,18 @@ public class EventStatisticsInfinite implements EventConsumer {
       player.incrementMatchesPlayed();
     }
 
+    // get current match for player using match_id and increments number of rounds
+    // win for that match. It is assumed that an event of eventType custom.roundWin
+    // is received when player wins a round in a match.
     if (header.getEventType()
       .equals(AppConstants.EVENT_TYPE_ROUND_WIN)) {
       final Match match = getMatch(player);
       match.incrementRoundsWon();
     }
 
-    // when recieve an event of match stop,get the value of total number of rounds
-    // from the json message and calculate the ratio of win/loss for the match
+    // when receive an event indicating finishing of match, get the value of total
+    // number of rounds
+    // from the json message and calculate the ratio of win/loss for the match.
     if (header.getEventType()
       .equals(AppConstants.EVENT_TYPE_MATCH_END)) {
       final Match match = getMatch(player);
@@ -103,6 +104,13 @@ public class EventStatisticsInfinite implements EventConsumer {
     System.out.println("---------------------------------------");
   }
 
+  /**
+   * finds match related to player using Match ID
+   *
+   * @param player
+   *          player identified by profile Id
+   * @return Match match related to current event's Match Id
+   */
   private Match getMatch(final Player player) {
     Match match;
     if (player.getMatches()
@@ -110,17 +118,38 @@ public class EventStatisticsInfinite implements EventConsumer {
       // existing match
       match = player.getMatches()
         .get(matchId);
-
     }
+
     else {
-      // new match
       match = Match.builder()
         .build();
       player.getMatches()
         .put(matchId, match);
     }
     return match;
+  }
 
+  /**
+   * parse json messages to pojo
+   *
+   * @param event
+   *          kafka message received
+   */
+  private void parseJSON(final Event event) {
+    try {
+      header = new ObjectMapper().treeToValue(event.getHeader(), HeaderMessage.class);
+
+      customAttributesJsonMessage =
+        new ObjectMapper().treeToValue(event.getCustomAttributes(), CustomAttributesJsonMessage.class);
+      matchJsonMessage = new ObjectMapper().treeToValue(event.getMatch(), MatchJsonMessage.class);
+
+      typeAttributeMessageJson =
+        new ObjectMapper().treeToValue(event.getTypeAttributes(), TypeAttributeMessageJson.class);
+
+    }
+    catch (final JsonProcessingException e) {
+      System.out.println(e);
+    }
   }
 
 }
